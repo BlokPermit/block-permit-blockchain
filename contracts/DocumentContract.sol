@@ -4,6 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "./Document.sol";
 import "./Project.sol";
+import "../node_modules/hardhat/console.sol";
 
 contract DocumentContract {
     address project;
@@ -147,7 +148,7 @@ contract DocumentContract {
         assessment = _assessment;
         assessment.dateProvided = block.timestamp;
         isClosed = true;
-        //mainDocumentType == MainDocumentType.DPP  ? Project(project).assessDPP(assessmentProvider, requiresAssessment) : Project(project).assessDGD(assessmentProvider); 
+        mainDocumentType == MainDocumentType.DPP  ? Project(project).assessDPP(assessmentProvider, requiresAssessment) : Project(project).assessDGD(assessmentProvider); 
         emit AssessmentProvided(assessment.dateProvided);
     }
 
@@ -212,6 +213,10 @@ contract DocumentContract {
             }
         }
         revert("Attachment with provided ID not found");
+    }
+
+    function getAssessmentAttachments() public view returns (Document[] memory) {
+        return assessment.assessmentAttachments;
     }
 
     // Because the lengths of public arrays aren't exposed by default

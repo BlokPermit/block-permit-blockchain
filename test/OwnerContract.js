@@ -13,7 +13,7 @@ describe("OwnerContract", function () {
 
   describe("Initialization", function () {
     it("should set the deployer as an initial owner", async function () {
-      expect(await ownerContract.isOwner(owner.address)).to.equal(true);
+      expect(await ownerContract.owners(owner.address)).to.equal(true);
     });
   });
 
@@ -46,45 +46,45 @@ describe("OwnerContract", function () {
   describe("Add Owner", function () {
     it("should add a new owner", async function () {
       await ownerContract.addOwner(authorizedUser.address);
-      expect(await ownerContract.isOwner(authorizedUser.address)).to.equal(true);
+      expect(await ownerContract.owners(authorizedUser.address)).to.equal(true);
     });
   });
 
   describe("Remove Owner", function () {
     it("should remove an existing owner", async function () {
       await ownerContract.removeOwner(owner.address);
-      expect(await ownerContract.isOwner(owner.address)).to.equal(false);
+      expect(await ownerContract.owners(owner.address)).to.equal(false);
     });
   });
 
   describe("Authorize User", function () {
     it("should authorize a user", async function () {
       await ownerContract.authorizeUser(authorizedUser.address);
-      expect(await ownerContract.isAuthorized(authorizedUser.address)).to.equal(true);
+      expect(await ownerContract.authorizedUsers(authorizedUser.address)).to.equal(true);
     });
   });
 
   describe("Unauthorize User", function () {
     it("should unauthorize a user", async function () {
       await ownerContract.unauthorizeUser(authorizedUser.address);
-      expect(await ownerContract.isAuthorized(authorizedUser.address)).to.equal(false);
+      expect(await ownerContract.authorizedUsers(authorizedUser.address)).to.equal(false);
     });
   });
 
   describe("Getter Functions", function () {
     describe("Owner Getter", function () {
       it("should return true for an existing owner", async function () {
-        expect(await ownerContract.isOwner(owner.address)).to.equal(true);
+        expect(await ownerContract.owners(owner.address)).to.equal(true);
       });
   
       it("should return false for a non-existing owner", async function () {
-        expect(await ownerContract.isOwner(otherUser.address)).to.equal(false);
+        expect(await ownerContract.owners(otherUser.address)).to.equal(false);
       });
 
       it("should return false for a authorized user", async function () {
         await ownerContract.authorizeUser(authorizedUser.address);
 
-        expect(await ownerContract.isOwner(authorizedUser.address)).to.equal(false);
+        expect(await ownerContract.owners(authorizedUser.address)).to.equal(false);
       });
     });
   
@@ -92,13 +92,13 @@ describe("OwnerContract", function () {
       it("should return true for an authorized user", async function () {
         await ownerContract.authorizeUser(authorizedUser.address);
   
-        expect(await ownerContract.isAuthorized(authorizedUser.address)).to.equal(true);
+        expect(await ownerContract.authorizedUsers(authorizedUser.address)).to.equal(true);
       });
   
       it("should return false for a non-authorized user", async function () {
         await ownerContract.authorizeUser(authorizedUser.address);
 
-        expect(await ownerContract.isAuthorized(otherUser.address)).to.equal(false);
+        expect(await ownerContract.authorizedUsers(otherUser.address)).to.equal(false);
       });
     });
   });

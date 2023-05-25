@@ -31,12 +31,4 @@ contract OwnerContract {
     function unauthorizeUser(address user) public onlyOwner {
         authorizedUsers[user] = false;
     }
-
-    function isAuthorized(address user) public view returns (bool) { // For log-in
-        return authorizedUsers[user];
-    }
-
-    function isOwner(address owner) public view returns (bool) { // For special cases
-        return owners[owner];
-    }
 }
