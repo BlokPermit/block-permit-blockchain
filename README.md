@@ -43,11 +43,11 @@ OWNER_CONTRACT_ADDRESS="Paste the deployed OwnerContract address if you wish to 
 All the commands should be run from root directory  
 
 **You need to only run this command ONCE**  
-`npx hardhat --network localganache run scripts/deploy.js`
-This deploys a OwnerContract onto a chain. There is no need to deploy multiple instances of this contract.
+`npx hardhat --network localganache run scripts/deploy.js`  
+This deploys a OwnerContract onto an chain. There is no need to deploy multiple instances of this contract.
 
 **Running API server:**  
-`npx hardhat --network localganache run api-testing/project.js`
+`npx hardhat --network localganache run api-testing/server.js`
 
 **Compile contracts:**  
 `npx hardhat compile`  
