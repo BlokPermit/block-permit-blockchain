@@ -58,6 +58,8 @@ Note that all the other provided commands will automatically compile contracts i
 or if you wish to run a single test script:  
 `npx hardhat test test/testfilename.js`
 
-## 5. Postman Setup
+## 5. Postman variables setup
+1. Go to "Environments" and select "Globals"
+2. Update the "Current value" for each variable (not the "Initial value")
 
 
