@@ -2,26 +2,7 @@
 
 This is a test blockchain network for Docu-verification app.
 
-## 1. Ganache setup
-1. Download [Ganache](https://trufflesuite.com/ganache/)
-2. Select "New workspace" and give it a name
-3. Under Chain, set Gas price to 1. Under Accounts & Keys set Account default balance to 10000000. Leave everything else as it is.
-
-## 2. Metamask setup
-**1. Adding a network**
-
-Click "Add network" > "Add a network manually"  Fill out the form:
-- Network name: `ganachelocal`
-- New RPC URL: copy the "RPC SERVER" url from ganache
-- Chain ID: `1337`
-- Currency symbol: `ETH`
-
-**2. Connecting Accounts**
-  1. Click on the key icon next to an account on Ganache and copy a private key
-  2. In Metamask, go to "Import account" and paste the private key
-  3. Under account details (three dots on the right), there is an edit icon next to account name - you can change it to f.e. "Project manager 1"
-
-## 3. Environment setup
+## 1. Environment setup
 Create an .env file at the root of the project
 ```dotenv
 PROVIDER_URL=`RPC SERVER url from ganache`
@@ -39,15 +20,17 @@ PRIVATE_KEY_9="..."
 OWNER_CONTRACT_ADDRESS="Paste the deployed OwnerContract address if you wish to use testing api"
 ```
 
-## 4. Running
+## 2. Running
 All the commands should be run from root directory  
+**1. Run Ganache**  
+`npm run ganache`  
+This command will always create the same keys, but I still have to find a way to persist data on a blockchain.
 
-**You need to only run this command ONCE**  
-`npx hardhat --network localganache run scripts/deploy.js`  
-This deploys a OwnerContract onto an chain. There is no need to deploy multiple instances of this contract.
+**2. Deploy OwnerContract**  
+`npx hardhat --network localganache run scripts/deploy.js`
 
-**Running API server:**  
-`npx hardhat --network localganache run api-testing/server.js`
+**3. Run API server:**  
+`npx hardhat --network localganache run api-testing/project.js`
 
 **Compile contracts:**  
 `npx hardhat compile`  
@@ -58,8 +41,19 @@ Note that all the other provided commands will automatically compile contracts i
 or if you wish to run a single test script:  
 `npx hardhat test test/testfilename.js`
 
-## 5. Postman variables setup
-1. Go to "Environments" and select "Globals"
-2. Update the "Current value" for each variable (not the "Initial value")
+## 3. Postman variables setup
+Always change "Current value" if you need to. You should never need to change users' and OwnerContract's addresses if setup has been done correctly.
 
+## 4. Metamask setup
+**1. Adding a network**
+
+Click "Add network" > "Add a network manually"  Fill out the form:
+- Network name: `ganachelocal`
+- New RPC URL: `127.0.0.1:8545` (should be, else copy it from console)
+- Chain ID: `1337`
+- Currency symbol: `ETH`
+
+**2. Connecting Accounts**
+1. In Metamask, go to "Import account" and paste the private key
+2. Under account details (three dots on the right), there is an edit icon next to account name - you can change it to f.e. "Project manager 1"
 

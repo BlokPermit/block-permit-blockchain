@@ -7,6 +7,10 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "fs": "^0.0.1-security",
+    "ganache": "^7.8.0",
     "path": "^0.12.7"
+  },
+  "scripts": {
+    "ganache": "ganache --chain.allowUnlimitedContractSize --miner.defaultGasPrice=0 --miner.callGasLimit=0x1fffffffffffff --miner.blockGasLimit=0x1fffffffffffff -m \"pretty nice dash swamp mother space harbor music pyramid attitude possible power\""
   }
 }

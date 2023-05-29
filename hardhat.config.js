@@ -8,9 +8,9 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 1,
         details: { yul: false }
-      },
+      }
     },
   },
   networks: {
@@ -27,8 +27,11 @@ module.exports = {
         process.env.PRIVATE_KEY_7,
         process.env.PRIVATE_KEY_8,
         process.env.PRIVATE_KEY_9,
-      ]
+      ],
+    },
+    hardhat: {
+      gas: 12000000,
+      allowUnlimitedContractSize: true
     }
-  },
-  allowUnlimitedContractSize: true
+  }
 }

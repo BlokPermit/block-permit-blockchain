@@ -16,19 +16,27 @@ contract OwnerContract {
         _;
     }
 
-    function addOwner(address owner) public onlyOwner {
-        owners[owner] = true;
+    function addOwners(address[] calldata _owners) external onlyOwner {
+        for (uint256 i = 0; i < _owners.length; i++) {
+            owners[_owners[i]] = true;
+        }
     }
 
-    function removeOwner(address owner) public onlyOwner {
-        owners[owner] = false;
+    function removeOwners(address[] calldata _owners) external onlyOwner {
+        for (uint256 i = 0; i < _owners.length; i++) {
+            owners[_owners[i]] = false;
+        }
     }
 
-    function authorizeUser(address user) public onlyOwner {
-        authorizedUsers[user] = true;
+    function authorizeUsers(address[] calldata users) external onlyOwner {
+        for (uint256 i = 0; i < users.length; i++) {
+            authorizedUsers[users[i]] = true;
+        }
     }
 
-    function unauthorizeUser(address user) public onlyOwner {
-        authorizedUsers[user] = false;
+    function unauthorizeUsers(address[] calldata users) external onlyOwner {
+        for (uint256 i = 0; i < users.length; i++) {
+            authorizedUsers[users[i]] = false;
+        }
     }
 }

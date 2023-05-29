@@ -22,4 +22,32 @@ async function getOwnerContract() {
     );
 }
 
-module.exports = {getContractABI, getOwnerContract};
+function addDaysToCurrentDate(days) {
+    const EPOCH_DAY = 86400;
+    return Math.floor(new Date().getTime() / 1000 + days * EPOCH_DAY);
+}
+
+function parseDocument(document) {
+    return {
+        id: document.id,
+        owner: document.owner,
+        documentHash: document.documentHash
+    }
+}
+
+function getDateFromEpoch(epochDate) {
+    return new Date(epochDate * 1000);
+}
+
+function getHash(hash) {
+    return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(hash));
+}
+
+module.exports = {
+    getContractABI,
+    getOwnerContract,
+    addDaysToCurrentDate,
+    getDateFromEpoch,
+    parseDocument,
+    getHash
+};

@@ -12,12 +12,12 @@ async function initialize() {
 
 router.use(express.urlencoded({extended: true}));
 
-router.post("/addOwner", async (req, res) => {
+router.post("/addOwners", async (req, res) => {
     try {
-        const addOwner = await contract
+        const addOwners = await contract
             .connect(await ethers.getSigner(req.body.signer))
-            .addOwner(req.body.owner);
-        const receipt = await addOwner.wait();
+            .addOwners(req.body.owners);
+        const receipt = await addOwners.wait();
         res.json({transactionHash: receipt.transactionHash});
     } catch (error) {
         console.error("Error:", error);
@@ -25,12 +25,12 @@ router.post("/addOwner", async (req, res) => {
     }
 });
 
-router.post("/removeOwner", async (req, res) => {
+router.post("/removeOwners", async (req, res) => {
     try {
-        const removeOwner = await contract
+        const removeOwners = await contract
             .connect(await ethers.getSigner(req.body.signer))
-            .removeOwner(req.body.owner);
-        const receipt = await removeOwner.wait();
+            .removeOwners(req.body.owners);
+        const receipt = await removeOwners.wait();
         res.json({transactionHash: receipt.transactionHash});
     } catch (error) {
         console.error("Error:", error);
@@ -38,12 +38,12 @@ router.post("/removeOwner", async (req, res) => {
     }
 });
 
-router.post("/authorizeUser", async (req, res) => {
+router.post("/authorizeUsers", async (req, res) => {
     try {
-        const authorizeUser = await contract
+        const authorizeUsers = await contract
             .connect(await ethers.getSigner(req.body.signer))
-            .authorizeUser(req.body.user);
-        const receipt = await authorizeUser.wait();
+            .authorizeUsers(req.body.users);
+        const receipt = await authorizeUsers.wait();
         res.json({transactionHash: receipt.transactionHash});
     } catch (error) {
         console.error("Error:", error);
@@ -51,12 +51,12 @@ router.post("/authorizeUser", async (req, res) => {
     }
 });
 
-router.post("/unauthorizeUser", async (req, res) => {
+router.post("/unauthorizeUsers", async (req, res) => {
     try {
-        const unauthorizeUser = await contract
+        const unauthorizeUsers = await contract
             .connect(await ethers.getSigner(req.body.signer))
-            .unauthorizeUser(req.body.user);
-        const receipt = await unauthorizeUser.wait();
+            .unauthorizeUsers(req.body.users);
+        const receipt = await unauthorizeUsers.wait();
         res.json({transactionHash: receipt.transactionHash});
     } catch (error) {
         console.error("Error:", error);
@@ -89,13 +89,3 @@ router.get("/isAuthorizedUser", async (req, res) => {
 });
 
 module.exports = {router, initialize};
-/*router.listen(3001, async () => {
-  console.log("OwnerContract API is running on port 3001");
-  const contractABI = await getContractABI("OwnerContract");
-  const provider = ethers.getDefaultProvider();
-  contract = new ethers.Contract(
-    process.env.OWNER_CONTRACT_ADDRESS,
-    contractABI,
-    provider
-  );
-});*/

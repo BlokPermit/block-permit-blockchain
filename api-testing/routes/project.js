@@ -2,7 +2,13 @@ require("dotenv").config();
 const express = require("express");
 const hre = require("hardhat");
 const router = express();
-const {getContractABI, getOwnerContract} = require("../utils");
+const {
+    getContractABI,
+    getOwnerContract,
+    addDaysToCurrentDate,
+    parseDocument,
+    getHash
+} = require("../utils");
 
 var ownerContract;
 var contractABI;
@@ -64,16 +70,24 @@ router.post("/createProject", async (req, res) => {
 
 router.get("/", async (req, res) => {
     try {
-        let project = await getContract(req.body.contractAddress, true);
+        let contract = await getContract(req.body.contractAddress, true);
+
         res.json({
-            projectManager: await project.projectManager(),
-            numOfAssessmentProviders: parseInt(await project.numOfAssessmentProviders()),
-            administrativeAuthority: await project.administrativeAuthority(),
-            numOfSentDPPs: parseInt(await project.getSentDPPsLength()),
-            numOfAssessedDPPs: parseInt(await project.numOfAssessedDPPs()),
-            numfOdSentDGDs: parseInt(await project.getSentDGDsLength()),
-            buildingPermitContract: await project.buildingPermitContract(),
-            isClosed: await project.isClosed()
+            address: await contract.address,
+            projectManager: await contract.projectManager(),
+            numOfAssessmentProviders: parseInt(await contract.numOfAssessmentProviders()),
+            assessmentProvidersAddresses: await contract.getAssessmentProvidersAddresses(),
+            administrativeAuthority: await contract.administrativeAuthority(),
+            DPP: parseDocument(await contract.DPP()),
+            numOfSentDPPs: parseInt(await contract.getSentDPPsLength()),
+            sentDPPsAddresses: await contract.getSentDPPsAddresses(),
+            numOfAssessedDPPs: parseInt(await contract.numOfAssessedDPPs()),
+            DGD: parseDocument(await contract.DGD()),
+            numfOfSentDGDs: parseInt(await contract.getSentDGDsLength()),
+            numOfAssessedDGDs: parseInt(await contract.numOfAssessedDGDs()),
+            sentDGDsAddresses: await contract.getSentDGDsAddresses(),
+            buildingPermitContract: await contract.buildingPermitContract(),
+            isClosed: await contract.isClosed()
         })
     } catch (error) {
         console.error("Error:", error);
@@ -83,10 +97,134 @@ router.get("/", async (req, res) => {
 
 router.post("/addAssessmentProviders", async (req, res) => {
     try {
-        let project = await getContract(req.body.contractAddress);
-        const addAssessmentProviders = await project.connect(await ethers.getSigner(req.body.signer)).addAssessmentProviders(req.body.assessmentProviders);
+        let contract = await getContract(req.body.contractAddress);
+        const addAssessmentProviders = await contract.connect(await ethers.getSigner(req.body.signer)).addAssessmentProviders(req.body.assessmentProviders);
         const receipt = await addAssessmentProviders.wait();
-        res.json({ transactionHash: receipt.transactionHash });
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.post("/removeAssessmentProviders", async (req, res) => {
+    try {
+        let contract = await getContract(req.body.contractAddress);
+        const removeAssessmentProviders = await contract.connect(await ethers.getSigner(req.body.signer)).removeAssessmentProviders(req.body.assessmentProviders);
+        const receipt = await removeAssessmentProviders.wait();
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.post("/setAdministrativeAuthority", async (req, res) => {
+    try {
+        let contract = await getContract(req.body.contractAddress);
+        const setAdministrativeAuthority = await contract.connect(await ethers.getSigner(req.body.signer)).setAdministrativeAuthority(req.body.administrativeAuthority);
+        const receipt = await setAdministrativeAuthority.wait();
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.put("/removeAdministrativeAuthority", async (req, res) => {
+    try {
+        let contract = await getContract(req.body.contractAddress);
+        const removeAdministrativeAuthority = await contract.connect(await ethers.getSigner(req.body.signer)).removeAdministrativeAuthority();
+        const receipt = await removeAdministrativeAuthority.wait();
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.post("/changeAdministrativeAuthority", async (req, res) => {
+    try {
+        let contract = await getContract(req.body.contractAddress);
+        const changeAdministrativeAuthority = await contract.connect(await ethers.getSigner(req.body.signer)).changeAdministrativeAuthority(req.body.administrativeAuthority);
+        const receipt = await changeAdministrativeAuthority.wait();
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.post("/setDPP", async (req, res) => {
+    console.log(req.body);
+    try {
+        let contract = await getContract(req.body.contractAddress, true);
+        const dpp = {
+            id: JSON.parse(req.body.dpp).id,
+            owner: req.body.signer,
+            documentHash: getHash(JSON.parse(req.body.dpp).documentHash)
+        }
+        const setDPP = await contract.connect(await ethers.getSigner(req.body.signer)).setDPP(dpp);
+        const receipt = await setDPP.wait();
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.post("/sendDPP", async (req, res) => {
+    try {
+        let contract = await getContract(req.body.contractAddress, true);
+        let documentContractStructs = [];
+        for (let i of req.body.assessmentProviders) {
+            documentContractStructs.push({
+                assessmentProvider: i,
+                attachments: []
+            });
+        }
+
+        const sendDPP = await contract.connect(await ethers.getSigner(req.body.signer)).sendDPP(documentContractStructs);
+        const receipt = await sendDPP.wait();
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.post("/setDGD", async (req, res) => {
+    console.log(req.body);
+    try {
+        let contract = await getContract(req.body.contractAddress, true);
+        const dgd = {
+            id: JSON.parse(req.body.dgd).id,
+            owner: req.body.signer,
+            documentHash: getHash(JSON.parse(req.body.dgd).documentHash)
+        }
+        const setDGD = await contract.connect(await ethers.getSigner(req.body.signer)).setDGD(dgd);
+        const receipt = await setDGD.wait();
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.post("/sendDGD", async (req, res) => {
+    try {
+        let contract = await getContract(req.body.contractAddress, true);
+        let documentContractStructs = [];
+        for (let i of req.body.assessmentProviders) {
+            documentContractStructs.push({
+                assessmentProvider: i,
+                attachments: []
+            });
+        }
+
+        const sendDGD = await contract.connect(await ethers.getSigner(req.body.signer)).sendDGD(documentContractStructs);
+        const receipt = await sendDGD.wait();
+        res.json({transactionHash: receipt.transactionHash});
     } catch (error) {
         console.error("Error:", error);
         res.status(500).json({error: error});
@@ -94,12 +232,5 @@ router.post("/addAssessmentProviders", async (req, res) => {
 });
 
 module.exports = {router, initialize};
-
-/*router.listen(3002, async () => {
-  console.log("Project API is running on port 3002");
-  const contractABI = await getContractABI("Project");
-  const provider = ethers.getDefaultProvider();
-  ownerContract = await getOwnerContract();
-});*/
 
 

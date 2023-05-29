@@ -47,13 +47,11 @@ describe("DocumentContract", function () {
       "DocumentContract"
     );
     documentContract = await DocumentContractFactory.deploy(
+      projectContract.address,
       projectManager.address,
       assessmentProvider.address,
-      mainDocument,
       attachments,
       mainDocumentType,
-      assessmentDueDate,
-      projectContract.address
     );
   });
 
@@ -246,81 +244,6 @@ describe("DocumentContract", function () {
     });
   });
 
-  describe("updateMainDocument", function () {
-    it("should update the main document", async function () {
-      const updatedMainDocument = {
-        id: "idUpdated",
-        owner: projectManager.address,
-        documentHash: ethers.utils.keccak256(
-          ethers.utils.toUtf8Bytes("hashUpdated")
-        ),
-      };
-      await documentContract.updateMainDocument(updatedMainDocument);
-      const mainDocument = await documentContract.mainDocument();
-      expect(updatedMainDocument.documentHash).to.equal(
-        mainDocument.documentHash
-      );
-    });
-
-    it("should revert if called by a non-project manager", async function () {
-      await expect(
-        documentContract
-          .connect(assessmentProvider)
-          .updateMainDocument({
-            id: "idUpdated",
-            owner: projectManager.address,
-            documentHash: ethers.utils.keccak256(
-              ethers.utils.toUtf8Bytes("hashUpdated")
-            ),
-          })
-      ).to.be.revertedWith("Only the project manager can call this function");
-    });
-
-    it("should revert if called after assessment has finished", async function () {
-      await documentContract.connect(assessmentProvider).provideAssessment(
-        {
-          dateProvided: addDaysToCurrentDate(0),
-          assessmentMainDocument: {
-            id: "id4",
-            owner: assessmentProvider.address,
-            documentHash: ethers.utils.keccak256(
-              ethers.utils.toUtf8Bytes("hash4")
-            ),
-          },
-          assessmentAttachments: [
-            {
-              id: "id4",
-              owner: assessmentProvider.address,
-              documentHash: ethers.utils.keccak256(
-                ethers.utils.toUtf8Bytes("hash4")
-              ),
-            },
-            {
-              id: "id5",
-              owner: assessmentProvider.address,
-              documentHash: ethers.utils.keccak256(
-                ethers.utils.toUtf8Bytes("hash5")
-              ),
-            },
-          ],
-        },
-        true
-      );
-
-      await expect(
-        documentContract.updateMainDocument({
-          id: "idUpdated",
-          owner: projectManager.address,
-          documentHash: ethers.utils.keccak256(
-            ethers.utils.toUtf8Bytes("hashUpdated")
-          ),
-        })
-      ).to.be.revertedWith(
-        "This function can only be called when assessment hasn't finsihed yet"
-      );
-    });
-  });
-
   describe("requestMainDocumentUpdate", function () {
     it("should set mainDocumentUpdateRequested to true", async function () {
       documentContract.connect(assessmentProvider).requestMainDocumentUpdate();
@@ -379,19 +302,6 @@ describe("DocumentContract", function () {
       ).to.be.revertedWith(
         "This function can only be called when assessment hasn't finsihed yet"
       );
-    });
-
-    it("should increase the assessment due date by 15 days", async function () {
-      const initialAssessmentDueDate =
-        await documentContract.assessmentDueDate();
-      const expectedDueDate =
-        parseInt(initialAssessmentDueDate) + 15 * EPOCH_DAY;
-      await documentContract
-        .connect(assessmentProvider)
-        .requestMainDocumentUpdate();
-      const updatedAssessmentDueDate =
-        await documentContract.assessmentDueDate();
-      expect(updatedAssessmentDueDate).to.equal(expectedDueDate);
     });
   });
 
@@ -471,6 +381,25 @@ describe("DocumentContract", function () {
 
   describe("provideAssessment", function () {
     it("Should provide an assessment and set isClosed to true", async function () {
+      const assessmentAttachments = [
+        {
+          id: "id4",
+          owner: assessmentProvider.address,
+          documentHash: ethers.utils.keccak256(
+            ethers.utils.toUtf8Bytes("hash4")
+          ),
+        },
+        {
+          id: "id5",
+          owner: assessmentProvider.address,
+          documentHash: ethers.utils.keccak256(
+            ethers.utils.toUtf8Bytes("hash5")
+          ),
+        }
+      ];
+
+      console.log(assessmentAttachments);
+
       await documentContract.connect(assessmentProvider).provideAssessment(
         {
           dateProvided: addDaysToCurrentDate(0),
@@ -481,26 +410,12 @@ describe("DocumentContract", function () {
               ethers.utils.toUtf8Bytes("hash4")
             ),
           },
-          assessmentAttachments: [
-            {
-              id: "id4",
-              owner: assessmentProvider.address,
-              documentHash: ethers.utils.keccak256(
-                ethers.utils.toUtf8Bytes("hash4")
-              ),
-            },
-            {
-              id: "id5",
-              owner: assessmentProvider.address,
-              documentHash: ethers.utils.keccak256(
-                ethers.utils.toUtf8Bytes("hash5")
-              ),
-            },
-          ],
+          assessmentAttachments: assessmentAttachments,
         },
         true
       );
       console.log(await documentContract.assessment());
+      expect(parseInt(await documentContract.getAssessmentAttachmentsLength())).equals(parseInt(assessmentAttachments.length));
       expect(await documentContract.isClosed()).to.equal(true);
     });
 

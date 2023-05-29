@@ -7,10 +7,9 @@ import "./Project.sol";
 import "../node_modules/hardhat/console.sol";
 
 contract DocumentContract {
-    address project;
+    address public project;
     address public immutable projectManager;
     address public immutable assessmentProvider;
-    Document public mainDocument;
     Document[] public attachments;
     MainDocumentType public mainDocumentType;
     bool public mainDocumentUpdateRequested;
@@ -27,24 +26,20 @@ contract DocumentContract {
     }
 
     enum MainDocumentType { DPP, DGD }
-    
+
     constructor(
+        address _project,
         address _projectManager,
         address _assessmentProvider,
-        Document memory _mainDocument,
         Document[] memory _attachments,
-        MainDocumentType _mainDocumentType,
-        uint256 _assessmentDueDate,
-        address _project
+        MainDocumentType _mainDocumentType
     ) {
-        require(_assessmentDueDate <= block.timestamp + 60 days, "Assessment due date cannot be later than 60 days in the future");
+        project = _project;
         projectManager = _projectManager;
         assessmentProvider = _assessmentProvider;
-        mainDocument = _mainDocument;
         mainDocumentType = _mainDocumentType;
         dateCreated = block.timestamp;
-        assessmentDueDate = (_assessmentDueDate >= dateCreated + 15 days) ? _assessmentDueDate : dateCreated + 15 days;
-        project = _project;
+        assessmentDueDate = dateCreated + 15 days;
         for (uint256 i = 0; i < _attachments.length; i++) {
             attachments.push(_attachments[i]);
         }
@@ -76,7 +71,7 @@ contract DocumentContract {
 
     event AttachmentAdded(string indexed id, bytes32 documentHash);
 
-    function addAttachments(Document[] calldata _attachments) public onlyProjectManager isBeingAssessed { 
+    function addAttachments(Document[] calldata _attachments) external onlyProjectManager isBeingAssessed { 
         for (uint256 i = 0; i < _attachments.length; i++) {
             require(_attachments[i].owner == projectManager, "Only the project manager can add attachments");
             attachments.push(_attachments[i]);
@@ -86,7 +81,7 @@ contract DocumentContract {
 
     event AttachmentRemoved(string indexed id, bytes32 documentHash);
 
-    function removeAttachments(string[] calldata _attachmentIds) public onlyProjectManager isBeingAssessed {
+    function removeAttachments(string[] calldata _attachmentIds) external onlyProjectManager isBeingAssessed {
         for (uint256 i = 0; i < _attachmentIds.length; i++) {
             for (uint256 j = 0; j < attachments.length; j++) {
                 if (compareStrings(_attachmentIds[i], attachments[j].id)) {
@@ -95,27 +90,23 @@ contract DocumentContract {
                     attachments[j] = attachments[attachments.length - 1];
                     attachments.pop();
                     emit AttachmentRemoved(tempId, tempDocumentHash);
+                    break;
                 }
             }
         }
     }
 
-    event MainDocumentUpdated(string indexed id, bytes32 documentHash, uint256 timestamp);
-
-    function updateMainDocument(Document calldata updatedMainDocument) public onlyProjectManager isBeingAssessed {
-        require(updatedMainDocument.owner == projectManager, "Only the project manager can update the main document");
-        mainDocument = updatedMainDocument;
-        mainDocumentUpdateRequested = false;
-        emit MainDocumentUpdated(updatedMainDocument.id, updatedMainDocument.documentHash, block.timestamp);
-    }
-
     event MainDocumentUpdateRequested(uint256 timestamp);
 
-    function requestMainDocumentUpdate() public onlyAssessmentProvider isBeingAssessed {
+    function requestMainDocumentUpdate() external onlyAssessmentProvider isBeingAssessed {
         require(!mainDocumentUpdateRequested, "Main document update demand has already been recieved");
         mainDocumentUpdateRequested = true;
-        assessmentDueDate = assessmentDueDate + 15 days;
         emit MainDocumentUpdateRequested(block.timestamp);
+    }
+
+    function updateMainDocument() external {
+        require(msg.sender == project, "This function can only be called from project");
+        mainDocumentUpdateRequested = false;
     }
 
     event AssessmentDueDateExtensionRequested(uint256 requestedDueDate);
@@ -129,7 +120,7 @@ contract DocumentContract {
 
     event AssessmentDueDateExtensionEvaluated(bool requestConfirmed);
 
-    function evaluateAssessmentDueDateExtension(bool confirm) public onlyProjectManager isBeingAssessed {
+    function evaluateAssessmentDueDateExtension(bool confirm) external onlyProjectManager isBeingAssessed {
         require(requestedAssessmentDueDate != 0, "Due date extension has not been requested");
         if (confirm) {
             assessmentDueDate = requestedAssessmentDueDate;
@@ -140,7 +131,8 @@ contract DocumentContract {
 
     event AssessmentProvided(uint256 indexed _dateProvided); 
 
-    function provideAssessment(Assessment calldata _assessment, bool requiresAssessment) public onlyAssessmentProvider isBeingAssessed {
+    // It doesn't matter which dateProvided you set to the assessment as it will automatically set to current date. But you still need to pass it in correct format
+    function provideAssessment(Assessment calldata _assessment, bool requiresAssessment) external onlyAssessmentProvider isBeingAssessed {
         require(_assessment.assessmentMainDocument.owner == assessmentProvider, "Only the assessment provider can provide the main document of an assessment");
         for (uint256 i = 0; i < _assessment.assessmentAttachments.length; i++) {
             require(_assessment.assessmentAttachments[i].owner == assessmentProvider, "Only the assessment provider can provide attachments of an assessment");
@@ -154,7 +146,7 @@ contract DocumentContract {
 
     event AssessmentAttachmentAdded(string indexed id, bytes32 documentHash);
 
-    function addAssessmentAttachments(Document[] calldata _assessmentAttachments) public onlyAssessmentProvider hasBeenAssessed {
+    function addAssessmentAttachments(Document[] calldata _assessmentAttachments) external onlyAssessmentProvider hasBeenAssessed {
         for (uint256 i = 0; i < _assessmentAttachments.length; i++) {
             require(_assessmentAttachments[i].owner == assessmentProvider, "Only the assessment provider can add assessment attachments");
             assessment.assessmentAttachments.push(_assessmentAttachments[i]);
@@ -164,15 +156,16 @@ contract DocumentContract {
 
     event AssessmentAttachmentRemoved(string indexed id, bytes32 documentHash);
 
-    function removeAssessmentAttachments(string[] calldata _assessmentAttachmentIds) public onlyAssessmentProvider hasBeenAssessed {
+    function removeAssessmentAttachments(string[] calldata _assessmentAttachmentIds) external onlyAssessmentProvider hasBeenAssessed {
         for (uint256 i = 0; i < _assessmentAttachmentIds.length; i++) {
             for (uint256 j = 0; j < assessment.assessmentAttachments.length; j++) {
                 if (compareStrings(_assessmentAttachmentIds[i], assessment.assessmentAttachments[j].id)) {
                     string memory tempId = assessment.assessmentAttachments[j].id;
                     bytes32 tempDocumentHash = assessment.assessmentAttachments[j].documentHash;
-                    assessment.assessmentAttachments[j] = assessment.assessmentAttachments[attachments.length - 1];
+                    assessment.assessmentAttachments[j] = assessment.assessmentAttachments[assessment.assessmentAttachments.length - 1];
                     assessment.assessmentAttachments.pop();
                     emit AttachmentRemoved(tempId, tempDocumentHash);
+                    break;
                 }
             }
         }
@@ -180,7 +173,7 @@ contract DocumentContract {
 
     event AssessmentMainDocumentUpdated(string indexed id, bytes32 documentHash, uint256 timestamp);
 
-    function updateAssessmentMainDocument(Document calldata updatedAssessmentMainDocument) public onlyAssessmentProvider hasBeenAssessed {
+    function updateAssessmentMainDocument(Document calldata updatedAssessmentMainDocument) external onlyAssessmentProvider hasBeenAssessed {
         require(updatedAssessmentMainDocument.owner == assessmentProvider, "Only the project manager can update the main document");
         assessment.assessmentMainDocument = updatedAssessmentMainDocument;
         emit AssessmentMainDocumentUpdated(updatedAssessmentMainDocument.id, updatedAssessmentMainDocument.documentHash, block.timestamp);
@@ -213,6 +206,10 @@ contract DocumentContract {
             }
         }
         revert("Attachment with provided ID not found");
+    }
+
+    function getAttachments() public view returns (Document[] memory) {
+        return attachments;
     }
 
     function getAssessmentAttachments() public view returns (Document[] memory) {

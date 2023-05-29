@@ -9,7 +9,6 @@ const hre = require("hardhat");
 async function main() {
   const OwnerContract = await hre.ethers.getContractFactory("OwnerContract");
   const ownerContract = await OwnerContract.deploy();
-  await ownerContract.deployed();
   console.log(`OwnerContract deployed to ${ownerContract.address}`);
 }
 

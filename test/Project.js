@@ -1,5 +1,9 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
+const {getContractABI} = require("../api-testing/utils");
+let DPP;
+let DGD;
+
 
 const EPOCH_DAY = 86400;
 
@@ -26,6 +30,17 @@ describe("Project", function () {
       administrativeAuthority,
     ] = await ethers.getSigners();
 
+    DPP = {
+      id: "dpp",
+      owner: projectManager.address,
+      documentHash: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("dpp")),
+    }
+    DGD = {
+      id: "dgd",
+      owner: projectManager.address,
+      documentHash: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("dgd")),
+    }
+
     assessmentDueDate = addDaysToCurrentDate(17);
     const ProjectFactory = await hre.ethers.getContractFactory("Project");
     projectContract = await ProjectFactory.deploy();
@@ -35,11 +50,6 @@ describe("Project", function () {
     documentType, // true = DPP, false = DGD
     assessmentProviderAddress
   ) {
-    const mainDocument = {
-      id: "id1",
-      owner: projectManager.address,
-      documentHash: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("hash1")),
-    };
     const attachments = [
       {
         id: "id1",
@@ -62,13 +72,11 @@ describe("Project", function () {
       "DocumentContract"
     );
     return await DocumentContractFactory.deploy(
+      projectContract.address,
       projectManager.address,
       assessmentProviderAddress,
-      mainDocument,
       attachments,
-      mainDocumentType,
-      assessmentDueDate,
-      projectContract.address
+      mainDocumentType
     );
   }
 
@@ -137,6 +145,49 @@ describe("Project", function () {
       );
     });
 
+    it("should remove assessment provider and remove sent DPP from sentDPPs", async function () {
+      let dpps = [];
+      assessmentProviders = [
+        assessmentProvider1.address,
+        assessmentProvider2.address,
+        assessmentProvider3.address,
+      ];
+      dpps = [];
+      for (let i of assessmentProviders) {
+        dpps.push({
+          assessmentProvider: i,
+          mainDocument: {
+            id: "id1",
+            owner: projectManager.address,
+            documentHash: ethers.utils.keccak256(
+              ethers.utils.toUtf8Bytes("hash1")
+            ),
+          },
+          attachments: [],
+          assessmentDueDate: addDaysToCurrentDate(15),
+        });
+      }
+      
+      await projectContract.setDPP(DPP);
+      await projectContract.addAssessmentProviders(assessmentProviders);
+      await projectContract.sendDPP(dpps);
+      const previousNumOfSentDPPs = await projectContract.getSentDPPsLength();
+      const assessmentProvidersToRemove = [
+        assessmentProvider1.address,
+        assessmentProvider2.address,
+      ];
+      await projectContract.removeAssessmentProviders(
+        assessmentProvidersToRemove
+      );
+      for (let i of assessmentProvidersToRemove) {
+        let assessmentProvider = await projectContract.assessmentProviders(i);
+        expect(assessmentProvider.exists).equals(false);
+      }
+      expect(await projectContract.getSentDPPsLength()).equals(
+        previousNumOfSentDPPs - assessmentProvidersToRemove.length
+      );
+    });
+
     it("should revert if all DPPs have been assessed", async function () {
       const assessmentProviders = [
         assessmentProvider1.address,
@@ -197,7 +248,40 @@ describe("Project", function () {
     });
   });
 
-  describe("sendDPPs", function () {
+  describe("setDPP", function() {
+    let assessmentProviders = [];
+    
+    beforeEach(function() {
+      assessmentProviders = [
+        assessmentProvider1.address,
+        assessmentProvider2.address,
+        assessmentProvider3.address,
+      ];
+    });
+
+    it("should set DPP", async function() {
+      await projectContract.setDPP(DPP);
+      const _dpp = await projectContract.DPP();
+      expect(_dpp.documentHash).equals(DPP.documentHash);
+    });
+
+    it("should set DocumentContract's mainDocumentUpdateRequested to false", async function() {
+      await projectContract.setDPP(DPP);
+      await projectContract.addAssessmentProviders(assessmentProviders);
+      await projectContract.sendDPP([{
+        assessmentProvider: assessmentProviders[0],
+        attachments: []
+      }]);
+      let docContract = await hre.ethers.getContractAt('DocumentContract', projectContract.sentDPPs(0));
+      await docContract.connect(assessmentProvider1).requestMainDocumentUpdate();
+      expect(await docContract.mainDocumentUpdateRequested()).equals(true);
+      await projectContract.setDPP(DPP);
+      expect(await docContract.mainDocumentUpdateRequested()).equals(false);
+      
+    });
+  });
+
+  describe("sendDPP", function () {
     let assessmentProviders = [];
     let dpps = [];
 
@@ -224,25 +308,46 @@ describe("Project", function () {
       }
     });
 
-    it("should send DPPs", async function () {
+    it("should send DPP", async function () {
       await projectContract.addAssessmentProviders(assessmentProviders);
-      await projectContract.sendDPPs(dpps);
+      await projectContract.setDPP(DPP);
+      await projectContract.sendDPP(dpps);
       for (let i of assessmentProviders) {
         const assessmentProvider = await projectContract.assessmentProviders(i);
         expect(assessmentProvider.hasReceivedDPP).equals(true);
       }
+
+      for (let i = 0; i < dpps.length; i++) {
+        const documentContractAddress = await projectContract.sentDPPs(i);
+        const contractABI = await getContractABI("DocumentContract");
+        const docContract = await new ethers.Contract(
+          documentContractAddress,
+          contractABI,
+          projectManager
+        );
+        expect(await docContract.project()).equals(await projectContract.address);
+        expect(await docContract.projectManager()).equals(await projectContract.projectManager());
+      }
     });
 
     it("should revert if assessment provider does not exist on a project", async function () {
-      await expect(projectContract.sendDPPs(dpps)).to.be.revertedWith(
+      await projectContract.setDPP(DPP);
+      await expect(projectContract.sendDPP(dpps)).to.be.revertedWith(
         "Addressed assessment provider has to exsist on a project"
+      );
+    });
+
+    it("should revert if DPP has not been set", async function () {
+      await expect(projectContract.sendDPP(dpps)).to.be.revertedWith(
+        "DPP must be added in order to call this function"
       );
     });
 
     it("should revert if assessment provider has already recieved a dpp", async function () {
       await projectContract.addAssessmentProviders(assessmentProviders);
-      await projectContract.sendDPPs(dpps);
-      await expect(projectContract.sendDPPs(dpps)).to.be.revertedWith(
+      await projectContract.setDPP(DPP);
+      await projectContract.sendDPP(dpps);
+      await expect(projectContract.sendDPP(dpps)).to.be.revertedWith(
         "Addressed assessment provider has already received a DPP"
       );
     });
@@ -274,7 +379,8 @@ describe("Project", function () {
         });
       }
       await projectContract.addAssessmentProviders(assessmentProviders);
-      await projectContract.sendDPPs(dpps);
+      await projectContract.setDPP(DPP);
+      await projectContract.sendDPP(dpps);
     });
 
     it("should assess DPP", async function () {
@@ -334,7 +440,7 @@ describe("Project", function () {
     });
   });
 
-  describe("sendDGDs", function () {
+  describe("setDGD", function() {
     let assessmentProviders = [];
     let dpds = [];
     let dgds = [];
@@ -361,7 +467,62 @@ describe("Project", function () {
         });
       }
       await projectContract.addAssessmentProviders(assessmentProviders);
-      await projectContract.sendDPPs(dpps);
+      await projectContract.setDPP(DPP);
+      await projectContract.sendDPP(dpps);
+
+      const sentDPPsLength = await projectContract.getSentDPPsLength();
+      for (let i = 0; i < sentDPPsLength; i++) {
+        const documentContract = await ethers.getContractAt(
+          "DocumentContract",
+          await projectContract.sentDPPs(i)
+        );
+        await assessDocumentContract(documentContract);
+      }
+
+      for (let i of assessmentProviders) {
+        dgds.push({
+          assessmentProvider: i,
+          attachments: [],
+        });
+      }
+    });
+
+    it("should set DGD", async function() {
+      await projectContract.setDGD(DGD);
+      const _dgd = await projectContract.DGD();
+      expect(_dgd.documentHash).equals(DGD.documentHash);
+    });
+  });
+
+  describe("sendDGD", function () {
+    let assessmentProviders = [];
+    let dpds = [];
+    let dgds = [];
+
+    beforeEach(async function () {
+      assessmentProviders = [
+        assessmentProvider1.address,
+        assessmentProvider2.address,
+        assessmentProvider3.address,
+      ];
+      dpps = [];
+      for (let i of assessmentProviders) {
+        dpps.push({
+          assessmentProvider: i,
+          mainDocument: {
+            id: "id1",
+            owner: projectManager.address,
+            documentHash: ethers.utils.keccak256(
+              ethers.utils.toUtf8Bytes("hash1")
+            ),
+          },
+          attachments: [],
+          assessmentDueDate: addDaysToCurrentDate(15),
+        });
+      }
+      await projectContract.addAssessmentProviders(assessmentProviders);
+      await projectContract.setDPP(DPP);
+      await projectContract.sendDPP(dpps);
 
       const sentDPPsLength = await projectContract.getSentDPPsLength();
       for (let i = 0; i < sentDPPsLength; i++) {
@@ -388,8 +549,9 @@ describe("Project", function () {
       }
     });
 
-    it("should send DGDs", async function () {
-      await projectContract.sendDGDs(dgds);
+    it("should send DGD", async function () {
+      await projectContract.setDGD(DGD);
+      await projectContract.sendDGD(dgds);
       for (let i of assessmentProviders) {
         const assessmentProvider = await projectContract.assessmentProviders(i);
         expect(assessmentProvider.hasReceivedDGD).equals(true);
@@ -397,6 +559,12 @@ describe("Project", function () {
       expect(await projectContract.numOfSentDGDs).equals(
         (await projectContract.numOfSentDPDs) &&
           (await projectContract.numOfAssessmentProviders)
+      );
+    });
+
+    it("should revert if DGD has not been set", async function () {
+      await expect(projectContract.sendDGD(dgds)).to.be.revertedWith(
+        "DGD must be added in order to call this function"
       );
     });
   });
@@ -428,7 +596,8 @@ describe("Project", function () {
         });
       }
       await projectContract.addAssessmentProviders(assessmentProviders);
-      await projectContract.sendDPPs(dpps);
+      await projectContract.setDPP(DPP);
+      await projectContract.sendDPP(dpps);
 
       const sentDPPsLength = await projectContract.getSentDPPsLength();
       for (let i = 0; i < sentDPPsLength; i++) {
@@ -454,7 +623,8 @@ describe("Project", function () {
           assessmentDueDate: addDaysToCurrentDate(15),
         });
       }
-      await projectContract.sendDGDs(dgds);
+      await projectContract.setDGD(DGD);
+      await projectContract.sendDGD(dgds);
     });
 
     it("should assess DGD", async function () {
