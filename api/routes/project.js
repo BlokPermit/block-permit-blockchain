@@ -59,6 +59,7 @@ async function beforeEach(req, res, next) {
 
 router.post("/createProject", async (req, res) => {
     try {
+        console.log(req.body.signer);
         const NewProject = await hre.ethers.getContractFactory("Project");
         const newProject = await NewProject.connect(await ethers.getSigner(req.body.signer)).deploy();
         res.json({address: newProject.address});
@@ -156,7 +157,6 @@ router.post("/changeAdministrativeAuthority", async (req, res) => {
 });
 
 router.post("/setDPP", async (req, res) => {
-    console.log(req.body);
     try {
         let contract = await getContract(req.body.contractAddress, true);
         const dpp = {
@@ -164,6 +164,7 @@ router.post("/setDPP", async (req, res) => {
             owner: req.body.signer,
             documentHash: getHash(JSON.parse(req.body.dpp).documentHash)
         }
+        console.log(getHash(JSON.parse(req.body.dpp).documentHash));
         const setDPP = await contract.connect(await ethers.getSigner(req.body.signer)).setDPP(dpp);
         const receipt = await setDPP.wait();
         res.json({transactionHash: receipt.transactionHash});

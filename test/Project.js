@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
-const {getContractABI} = require("../api-testing/utils");
+const {getContractABI} = require("../api/utils");
 let DPP;
 let DGD;
 

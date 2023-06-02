@@ -11,6 +11,7 @@
     "path": "^0.12.7"
   },
   "scripts": {
+    "ganache-db": "ganache --chain.allowUnlimitedContractSize --miner.defaultGasPrice=0 --miner.callGasLimit=0x1fffffffffffff --miner.blockGasLimit=0x1fffffffffffff -m \"pretty nice dash swamp mother space harbor music pyramid attitude possible power\" --database.dbPath=ganache-db/database.db",
     "ganache": "ganache --chain.allowUnlimitedContractSize --miner.defaultGasPrice=0 --miner.callGasLimit=0x1fffffffffffff --miner.blockGasLimit=0x1fffffffffffff -m \"pretty nice dash swamp mother space harbor music pyramid attitude possible power\""
   }
 }

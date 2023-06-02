@@ -30,7 +30,7 @@ This command will always create the same keys, but I still have to find a way to
 `npx hardhat --network localganache run scripts/deploy.js`
 
 **3. Run API server:**  
-`npx hardhat --network localganache run api-testing/project.js`
+`npx hardhat --network localganache run api-testing/server.js`
 
 **Compile contracts:**  
 `npx hardhat compile`  

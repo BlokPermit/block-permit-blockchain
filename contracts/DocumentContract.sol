@@ -96,12 +96,12 @@ contract DocumentContract {
         }
     }
 
-    event MainDocumentUpdateRequested(uint256 timestamp);
+    event MainDocumentUpdateRequested(uint256 timestamp, address project, address assessmentProvider);
 
     function requestMainDocumentUpdate() external onlyAssessmentProvider isBeingAssessed {
         require(!mainDocumentUpdateRequested, "Main document update demand has already been recieved");
         mainDocumentUpdateRequested = true;
-        emit MainDocumentUpdateRequested(block.timestamp);
+        emit MainDocumentUpdateRequested(block.timestamp, project, assessmentProvider);
     }
 
     function updateMainDocument() external {
