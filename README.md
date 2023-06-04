@@ -2,25 +2,7 @@
 
 This is a test blockchain network for Docu-verification app.
 
-## 1. Environment setup
-Create an .env file at the root of the project
-```dotenv
-PROVIDER_URL=`RPC SERVER url from ganache`
-PRIVATE_KEY_0="Private key 0 from Ganache"
-PRIVATE_KEY_1="Private key 1 from Ganache"
-PRIVATE_KEY_2="..."
-PRIVATE_KEY_3="..."
-PRIVATE_KEY_4="..."
-PRIVATE_KEY_5="..."
-PRIVATE_KEY_6="..."
-PRIVATE_KEY_7="..."
-PRIVATE_KEY_8="..."
-PRIVATE_KEY_9="..."
-
-OWNER_CONTRACT_ADDRESS="Paste the deployed OwnerContract address if you wish to use testing api"
-```
-
-## 2. Running
+## 1. Running
 All the commands should be run from root directory  
 **1. Run Ganache**  
 `npm run ganache`  
@@ -30,7 +12,7 @@ This command will always create the same keys, but I still have to find a way to
 `npx hardhat --network localganache run scripts/deploy.js`
 
 **3. Run API server:**  
-`npx hardhat --network localganache run api-testing/server.js`
+`npx hardhat --network localganache run api/server.js`
 
 **Compile contracts:**  
 `npx hardhat compile`  
@@ -41,10 +23,13 @@ Note that all the other provided commands will automatically compile contracts i
 or if you wish to run a single test script:  
 `npx hardhat test test/testfilename.js`
 
-## 3. Postman variables setup
+**Running logger:**  
+`npm run eventLogger`
+
+## 2. Postman variables setup
 Always change "Current value" if you need to. You should never need to change users' and OwnerContract's addresses if setup has been done correctly.
 
-## 4. Metamask setup
+## 3. Metamask setup
 **1. Adding a network**
 
 Click "Add network" > "Add a network manually"  Fill out the form:

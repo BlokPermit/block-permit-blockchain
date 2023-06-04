@@ -10,8 +10,8 @@ import "../node_modules/hardhat/console.sol";
 
 contract Project {
     address public immutable projectManager;
-    mapping (address => AssessmentProviderStruct) public assessmentProviders;
-    address[] public assessmentProvidersAddresses; 
+    mapping(address => AssessmentProviderStruct) public assessmentProviders;
+    address[] public assessmentProvidersAddresses;
     uint256 public numOfAssessmentProviders;
     address public administrativeAuthority;
     Document public DPP;
@@ -38,58 +38,103 @@ contract Project {
         address assessmentProvider;
         Document[] attachments;
     }
-    
-    constructor () {
-        projectManager = msg.sender;
 
+    event ProjectCreated(uint256 timestamp);
+
+    constructor() {
+        projectManager = msg.sender;
+        emit ProjectCreated(block.timestamp);
     }
 
     modifier onlyProjectManager() {
-        require(msg.sender == projectManager, "Only the project manager can call this function");
+        require(
+            msg.sender == projectManager,
+            "Only the project manager can call this function"
+        );
         _;
     }
 
     modifier DPPsInAssessment() {
         if (numOfAssessmentProviders != 0) {
-            require(numOfAssessedDPPs < numOfAssessmentProviders, "This function cannot be called after all the DPPs have been assessed");
+            require(
+                numOfAssessedDPPs < numOfAssessmentProviders,
+                "This function cannot be called after all the DPPs have been assessed"
+            );
         }
         _;
     }
 
     modifier DGDsInAssessment() {
-        require(numOfAssessedDPPs == numOfAssessmentProviders, "This function cannot be called before all DPPs have been assessed");
-        require(numOfAssessedDGDs < numOfAssessmentProviders, "This function cannot be called after all the DGDs have been assessed");
+        require(
+            numOfAssessedDPPs == numOfAssessmentProviders,
+            "This function cannot be called before all DPPs have been assessed"
+        );
+        require(
+            numOfAssessedDGDs < numOfAssessmentProviders,
+            "This function cannot be called after all the DGDs have been assessed"
+        );
         _;
     }
 
     modifier hasNotBeenClosed() {
-        require(address(buildingPermitContract) == address(0), 
-        "This function cannot be called after building permit contract has been sent");
+        require(
+            address(buildingPermitContract) == address(0),
+            "This function cannot be called after building permit contract has been sent"
+        );
         _;
     }
 
-    event AssessmentProviderAdded(address indexed _address);
+    event AssessmentProviderAdded(address _address, uint256 timestamp);
 
-    function addAssessmentProviders(address[] calldata _assessmentProviders) external onlyProjectManager DPPsInAssessment {
+    function addAssessmentProviders(
+        address[] calldata _assessmentProviders
+    ) external onlyProjectManager DPPsInAssessment {
         for (uint256 i = 0; i < _assessmentProviders.length; i++) {
-            require(!assessmentProviders[_assessmentProviders[i]].exists, "You can't add assessment provider that already exsists on a project");
-            assessmentProviders[_assessmentProviders[i]] = AssessmentProviderStruct(true, false, address(0), false, false, address(0), false);
+            require(
+                !assessmentProviders[_assessmentProviders[i]].exists,
+                "You can't add assessment provider that already exsists on a project"
+            );
+            assessmentProviders[
+                _assessmentProviders[i]
+            ] = AssessmentProviderStruct(
+                true,
+                false,
+                address(0),
+                false,
+                false,
+                address(0),
+                false
+            );
             assessmentProvidersAddresses.push(_assessmentProviders[i]);
             numOfAssessmentProviders++;
-            emit AssessmentProviderAdded(_assessmentProviders[i]);
+            emit AssessmentProviderAdded(
+                _assessmentProviders[i],
+                block.timestamp
+            );
         }
     }
 
-    event AssessmentProviderRemoved(address indexed _address);
+    event AssessmentProviderRemoved(address _address, uint256 timestamp);
 
-    function removeAssessmentProviders(address[] calldata _assessmentProviders) external onlyProjectManager DPPsInAssessment {
+    function removeAssessmentProviders(
+        address[] calldata _assessmentProviders
+    ) external onlyProjectManager DPPsInAssessment {
         for (uint256 i = 0; i < _assessmentProviders.length; i++) {
-            require(assessmentProviders[_assessmentProviders[i]].exists, "Assessment provider has to exist on a project");
-            require(!assessmentProviders[_assessmentProviders[i]].hasAssessedDPP, "You can't remove assessmentProvider that has already assessed a DPP");
+            require(
+                assessmentProviders[_assessmentProviders[i]].exists,
+                "Assessment provider has to exist on a project"
+            );
+            require(
+                !assessmentProviders[_assessmentProviders[i]].hasAssessedDPP,
+                "You can't remove assessmentProvider that has already assessed a DPP"
+            );
             assessmentProviders[_assessmentProviders[i]].exists = false;
             removeAssessmentProviderAddress(_assessmentProviders[i]);
             numOfAssessmentProviders--;
-            emit AssessmentProviderRemoved(_assessmentProviders[i]);
+            emit AssessmentProviderRemoved(
+                _assessmentProviders[i],
+                block.timestamp
+            );
         }
     }
 
@@ -97,7 +142,9 @@ contract Project {
         // Removes assessmentProvider's address from assessmentProvidersAddresses
         for (uint256 i = 0; i < assessmentProvidersAddresses.length; i++) {
             if (assessmentProvidersAddresses[i] == _address) {
-                assessmentProvidersAddresses[i] = assessmentProvidersAddresses[assessmentProvidersAddresses.length - 1];
+                assessmentProvidersAddresses[i] = assessmentProvidersAddresses[
+                    assessmentProvidersAddresses.length - 1
+                ];
                 assessmentProvidersAddresses.pop();
                 break;
             }
@@ -105,7 +152,10 @@ contract Project {
         // Removes sent DPP from sentDPPs array if it was received
         if (assessmentProviders[_address].hasReceivedDPP) {
             for (uint256 i = 0; i < sentDPPs.length; i++) {
-                if (address(sentDPPs[i]) == assessmentProviders[_address].receivedDPPAddress) {
+                if (
+                    address(sentDPPs[i]) ==
+                    assessmentProviders[_address].receivedDPPAddress
+                ) {
                     sentDPPs[i] = sentDPPs[sentDPPs.length - 1];
                     sentDPPs.pop();
                     break;
@@ -114,45 +164,84 @@ contract Project {
         }
     }
 
-    event AdministrativeAuthoritySet(address _administrativeAuthority);
+    event AdministrativeAuthoritySet(
+        address _administrativeAuthority,
+        uint256 timestamp
+    );
 
-    function setAdministrativeAuthority(address _administrativeAuthority) public onlyProjectManager hasNotBeenClosed {
-        require(administrativeAuthority == address(0), "Administrative authority has already been set");
+    function setAdministrativeAuthority(
+        address _administrativeAuthority
+    ) public onlyProjectManager hasNotBeenClosed {
+        require(
+            administrativeAuthority == address(0),
+            "Administrative authority has already been set"
+        );
         administrativeAuthority = _administrativeAuthority;
-        emit AdministrativeAuthoritySet(_administrativeAuthority);
+        emit AdministrativeAuthoritySet(
+            _administrativeAuthority,
+            block.timestamp
+        );
     }
 
-    event AdministrativeAuthorityRemoved(address _administrativeAuthority);
+    event AdministrativeAuthorityRemoved(
+        address _administrativeAuthority,
+        uint256 timestamp
+    );
 
-    function removeAdministrativeAuthority() public onlyProjectManager hasNotBeenClosed {
+    function removeAdministrativeAuthority()
+        public
+        onlyProjectManager
+        hasNotBeenClosed
+    {
         address tempAddress = administrativeAuthority;
         administrativeAuthority = address(0);
-        emit AdministrativeAuthorityRemoved(tempAddress);
+        emit AdministrativeAuthorityRemoved(tempAddress, block.timestamp);
     }
 
-    function changeAdministrativeAuthority(address _administrativeAuthority) external onlyProjectManager hasNotBeenClosed {
-        removeAdministrativeAuthority();
+    function changeAdministrativeAuthority(
+        address _administrativeAuthority
+    ) external onlyProjectManager hasNotBeenClosed {
+        if (administrativeAuthority != address(0)) {
+            removeAdministrativeAuthority();
+        }
         setAdministrativeAuthority(_administrativeAuthority);
     }
 
-    event DPPsent(address _address);
+    event DPPset(string documentId, uint256 timestamp);
 
-    event DPPset(uint256 timestamp, bytes32 documentHash);
-
-    function setDPP(Document calldata _DPP) external onlyProjectManager DPPsInAssessment {
-        require(_DPP.owner == projectManager, "Provided DPP's owner must be a project manager of this project");
+    function setDPP(
+        Document calldata _DPP
+    ) external onlyProjectManager DPPsInAssessment {
+        require(
+            _DPP.owner == projectManager,
+            "Provided DPP's owner must be a project manager of this project"
+        );
         DPP = _DPP;
         for (uint256 i = 0; i < sentDPPs.length; i++) {
             sentDPPs[i].updateMainDocument();
         }
-        emit DPPset(block.timestamp, DPP.documentHash);
+        emit DPPset(DPP.id, block.timestamp);
     }
 
-    function sendDPP(DocumentContractStruct[] calldata _sentDPPs) external onlyProjectManager DPPsInAssessment {
-        require(DPP.owner != address(0), "DPP must be added in order to call this function");
+    event DPPsent(address _address, uint256 timestamp);
+
+    function sendDPP(
+        DocumentContractStruct[] calldata _sentDPPs
+    ) external onlyProjectManager DPPsInAssessment {
+        require(
+            DPP.owner != address(0),
+            "DPP must be added in order to call this function"
+        );
         for (uint256 i = 0; i < _sentDPPs.length; i++) {
-            require(assessmentProviders[_sentDPPs[i].assessmentProvider].exists, "Addressed assessment provider has to exsist on a project");
-            require(!assessmentProviders[_sentDPPs[i].assessmentProvider].hasReceivedDPP, "Addressed assessment provider has already received a DPP");
+            require(
+                assessmentProviders[_sentDPPs[i].assessmentProvider].exists,
+                "Addressed assessment provider has to exsist on a project"
+            );
+            require(
+                !assessmentProviders[_sentDPPs[i].assessmentProvider]
+                    .hasReceivedDPP,
+                "Addressed assessment provider has already received a DPP"
+            );
             DocumentContract DPPContract = new DocumentContract(
                 address(this),
                 projectManager,
@@ -161,18 +250,30 @@ contract Project {
                 DocumentContract.MainDocumentType.DPP
             );
             sentDPPs.push(DPPContract);
-            assessmentProviders[_sentDPPs[i].assessmentProvider].hasReceivedDPP = true;
-            assessmentProviders[_sentDPPs[i].assessmentProvider].receivedDPPAddress = address(DPPContract);
-            emit DPPsent(address(DPPContract));
+            assessmentProviders[_sentDPPs[i].assessmentProvider]
+                .hasReceivedDPP = true;
+            assessmentProviders[_sentDPPs[i].assessmentProvider]
+                .receivedDPPAddress = address(DPPContract);
+            emit DPPsent(address(DPPContract), block.timestamp);
         }
     }
 
-    event allDPPsAssessed();
+    event allDPPsAssessed(uint256 timestamp);
 
     // DO NOT use directly! This is called from DocumentContract.provideAssessment()
-    function assessDPP(address assessmentProvider, bool requiresAssessment) external DPPsInAssessment { // Called from DocumentContract.provideAssessment()
-        require(assessmentProviders[assessmentProvider].exists = true, "Assessment provider has to exsist on a project");
-        require(!assessmentProviders[assessmentProvider].hasAssessedDPP, "This assessment provider has already assessed a DPP");
+    function assessDPP(
+        address assessmentProvider,
+        bool requiresAssessment
+    ) external DPPsInAssessment {
+        // Called from DocumentContract.provideAssessment()
+        require(
+            assessmentProviders[assessmentProvider].exists = true,
+            "Assessment provider has to exsist on a project"
+        );
+        require(
+            !assessmentProviders[assessmentProvider].hasAssessedDPP,
+            "This assessment provider has already assessed a DPP"
+        );
         assessmentProviders[assessmentProvider].hasAssessedDPP = true;
         numOfAssessedDPPs++;
         if (!requiresAssessment) {
@@ -180,28 +281,45 @@ contract Project {
             numOfAssessedDGDs++;
         }
         if (numOfAssessedDPPs == numOfAssessmentProviders) {
-            emit allDPPsAssessed();
+            emit allDPPsAssessed(block.timestamp);
         }
     }
 
-    event DGDset(uint256 timestamp, bytes32 documentHash);
+    event DGDset(string documentId, uint256 timestamp);
 
-    function setDGD(Document calldata _DGD) external onlyProjectManager DGDsInAssessment {
-        require(_DGD.owner == projectManager, "Provided DGD's owner must be a project manager of this project");
+    function setDGD(
+        Document calldata _DGD
+    ) external onlyProjectManager DGDsInAssessment {
+        require(
+            _DGD.owner == projectManager,
+            "Provided DGD's owner must be a project manager of this project"
+        );
         DGD = _DGD;
         for (uint256 i = 0; i < sentDGDs.length; i++) {
             sentDGDs[i].updateMainDocument();
         }
-        emit DPPset(block.timestamp, DGD.documentHash);
+        emit DGDset(DGD.id, block.timestamp);
     }
 
-    event DGDsent(address _address);
+    event DGDsent(address _address, uint256 timestamp);
 
-    function sendDGD(DocumentContractStruct[] calldata _sentDGDs) external onlyProjectManager DGDsInAssessment {
-        require(DGD.owner != address(0), "DGD must be added in order to call this function");
+    function sendDGD(
+        DocumentContractStruct[] calldata _sentDGDs
+    ) external onlyProjectManager DGDsInAssessment {
+        require(
+            DGD.owner != address(0),
+            "DGD must be added in order to call this function"
+        );
         for (uint256 i = 0; i < _sentDGDs.length; i++) {
-            require(assessmentProviders[_sentDGDs[i].assessmentProvider].exists, "Addressed assessment provider has to exsist on a project");
-            require(!assessmentProviders[_sentDGDs[i].assessmentProvider].hasReceivedDGD, "Addressed assessment provider has already received a DGD");
+            require(
+                assessmentProviders[_sentDGDs[i].assessmentProvider].exists,
+                "Addressed assessment provider has to exsist on a project"
+            );
+            require(
+                !assessmentProviders[_sentDGDs[i].assessmentProvider]
+                    .hasReceivedDGD,
+                "Addressed assessment provider has already received a DGD"
+            );
 
             DocumentContract DGDContract = new DocumentContract(
                 address(this),
@@ -211,39 +329,55 @@ contract Project {
                 DocumentContract.MainDocumentType.DGD
             );
             sentDGDs.push(DGDContract);
-            assessmentProviders[_sentDGDs[i].assessmentProvider].hasReceivedDGD = true;
-            assessmentProviders[_sentDGDs[i].assessmentProvider].receivedDGDAddress = address(DGDContract);
-            emit DGDsent(address(DGDContract));
+            assessmentProviders[_sentDGDs[i].assessmentProvider]
+                .hasReceivedDGD = true;
+            assessmentProviders[_sentDGDs[i].assessmentProvider]
+                .receivedDGDAddress = address(DGDContract);
+            emit DGDsent(address(DGDContract), block.timestamp);
         }
     }
 
-    event allDGDsAssessed();
+    event allDGDsAssessed(uint256 timestamp);
 
     // DO NOT use directly! This is called from DocumentContract.provideAssessment()
-    function assessDGD(address assessmentProvider) external DGDsInAssessment { 
-        require(assessmentProviders[assessmentProvider].exists = true, "Assessment provider has to exsist on a project");
-        require(!assessmentProviders[assessmentProvider].hasAssessedDGD, "This assessment provider has already assessed a DGD");
+    function assessDGD(address assessmentProvider) external DGDsInAssessment {
+        require(
+            assessmentProviders[assessmentProvider].exists = true,
+            "Assessment provider has to exsist on a project"
+        );
+        require(
+            !assessmentProviders[assessmentProvider].hasAssessedDGD,
+            "This assessment provider has already assessed a DGD"
+        );
         assessmentProviders[assessmentProvider].hasAssessedDGD = true;
         numOfAssessedDGDs++;
         if (numOfAssessedDGDs == numOfAssessmentProviders) {
-            emit allDGDsAssessed();
+            emit allDGDsAssessed(block.timestamp);
         }
     }
 
-    event BuildingPermitContractCreated(address _address);
+    event BuildingPermitContractCreated(address _address, uint256 timestamp);
 
     function createBuildingPermitContract() internal hasNotBeenClosed {
-        require(administrativeAuthority != address(0), "Administrative authority has to be added in order to call this function");
-        BuildingPermitContract _buildingPermitContract = new BuildingPermitContract(address(this));
+        require(
+            administrativeAuthority != address(0),
+            "Administrative authority has to be added in order to call this function"
+        );
+        BuildingPermitContract _buildingPermitContract = new BuildingPermitContract(
+                address(this)
+            );
         buildingPermitContract = _buildingPermitContract;
-        emit BuildingPermitContractCreated(address(_buildingPermitContract));
+        emit BuildingPermitContractCreated(
+            address(_buildingPermitContract),
+            block.timestamp
+        );
     }
 
     function getSentDPPsLength() public view returns (uint256) {
         return sentDPPs.length;
     }
 
-    function getSentDGDsLength() public view returns (uint256){
+    function getSentDGDsLength() public view returns (uint256) {
         return sentDGDs.length;
     }
 
@@ -251,15 +385,27 @@ contract Project {
         return sentDPPs;
     }
 
-    function getSentDPPsAddresses() public view returns (DocumentContract[] memory) {
+    function getSentDPPsAddresses()
+        public
+        view
+        returns (DocumentContract[] memory)
+    {
         return sentDPPs;
     }
 
-    function getSentDGDsAddresses() public view returns (DocumentContract[] memory) {
+    function getSentDGDsAddresses()
+        public
+        view
+        returns (DocumentContract[] memory)
+    {
         return sentDGDs;
     }
 
-    function getAssessmentProvidersAddresses() public view returns (address[] memory) {
+    function getAssessmentProvidersAddresses()
+        public
+        view
+        returns (address[] memory)
+    {
         return assessmentProvidersAddresses;
     }
 }
