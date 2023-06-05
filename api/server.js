@@ -12,7 +12,7 @@ app.use('/project', projectRoute.router);
 app.use('/documentContract', documentContractRoute.router);
 
 // Start the server
-const port = 3000; // Specify the desired port
+const port = process.env.BACKEND_PORT; // Specify the desired port
 app.listen(port, async ()  => {
     await ownerContractRoute.initialize();
     await projectRoute.initialize();

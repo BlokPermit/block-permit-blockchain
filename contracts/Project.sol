@@ -22,6 +22,7 @@ contract Project {
     uint256 public numOfAssessedDGDs;
     BuildingPermitContract public buildingPermitContract;
     bool public isClosed;
+    uint256 public dateCreated;
 
     struct AssessmentProviderStruct {
         bool exists; // Turn to false if assessment provider is removed
@@ -43,6 +44,7 @@ contract Project {
 
     constructor() {
         projectManager = msg.sender;
+        dateCreated = block.timestamp;
         emit ProjectCreated(block.timestamp);
     }
 
