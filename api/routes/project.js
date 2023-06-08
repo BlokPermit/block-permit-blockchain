@@ -88,7 +88,8 @@ router.get("/", async (req, res) => {
             numOfAssessedDGDs: parseInt(await contract.numOfAssessedDGDs()),
             sentDGDsAddresses: await contract.getSentDGDsAddresses(),
             buildingPermitContract: await contract.buildingPermitContract(),
-            isClosed: await contract.isClosed()
+            isClosed: await contract.isClosed(),
+            dateCreated: parseInt(await contract.dateCreated())
         })
     } catch (error) {
         console.error("Error:", error);

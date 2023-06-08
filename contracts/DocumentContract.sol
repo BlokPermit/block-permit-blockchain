@@ -144,6 +144,9 @@ contract DocumentContract {
             msg.sender == project,
             "This function can only be called from project"
         );
+        if (mainDocumentUpdateRequested) {
+            assessmentDueDate = assessmentDueDate + 15 days;
+        }
         mainDocumentUpdateRequested = false;
     }
 
@@ -152,9 +155,7 @@ contract DocumentContract {
         uint256 timestamp
     );
 
-    function requestAssessmentDueDateExtension(
-        uint256 _requestedAssessmentDueDate
-    ) public onlyAssessmentProvider isBeingAssessed {
+    function requestAssessmentDueDateExtension(uint256 _requestedAssessmentDueDate) public onlyAssessmentProvider isBeingAssessed {
         require(
             _requestedAssessmentDueDate >= assessmentDueDate,
             "Requested due date has to be later in the future than current due date"
@@ -175,17 +176,12 @@ contract DocumentContract {
         uint256 timestamp
     );
 
-    function evaluateAssessmentDueDateExtension(
-        bool confirm
-    ) external onlyProjectManager isBeingAssessed {
-        require(
-            requestedAssessmentDueDate != 0,
-            "Due date extension has not been requested"
-        );
+    function evaluateAssessmentDueDateExtension(bool confirm) external onlyProjectManager isBeingAssessed {
+        require(requestedAssessmentDueDate != 0, "Due date extension has not been requested");
         if (confirm) {
             assessmentDueDate = requestedAssessmentDueDate;
-            requestedAssessmentDueDate = 0;
         }
+        requestedAssessmentDueDate = 0;
         emit AssessmentDueDateExtensionEvaluated(confirm, block.timestamp);
     }
 
@@ -325,11 +321,7 @@ contract DocumentContract {
         return attachments;
     }
 
-    function getAssessmentAttachments()
-        public
-        view
-        returns (Document[] memory)
-    {
+    function getAssessmentAttachments() public view returns (Document[] memory) {
         return assessment.assessmentAttachments;
     }
 
