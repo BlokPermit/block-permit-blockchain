@@ -83,6 +83,7 @@ router.get("/", async (req, res) => {
             numOfSentDPPs: parseInt(await contract.getSentDPPsLength()),
             sentDPPsAddresses: await contract.getSentDPPsAddresses(),
             numOfAssessedDPPs: parseInt(await contract.numOfAssessedDPPs()),
+            isDPPPhaseFinalized: await contract.isDPPPhaseFinalized(),
             DGD: parseDocument(await contract.DGD()),
             numfOfSentDGDs: parseInt(await contract.getSentDGDsLength()),
             numOfAssessedDGDs: parseInt(await contract.numOfAssessedDGDs()),
@@ -188,6 +189,18 @@ router.post("/sendDPP", async (req, res) => {
 
         const sendDPP = await contract.connect(await ethers.getSigner(req.body.signer)).sendDPP(documentContractStructs);
         const receipt = await sendDPP.wait();
+        res.json({transactionHash: receipt.transactionHash});
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({error: error});
+    }
+});
+
+router.post("/finalizeDPPPhase", async (req, res) => {
+    try {
+        let contract = await getContract(req.body.contractAddress, true);
+        const finalizeDPPPhase = await contract.connect(await ethers.getSigner(req.body.signer)).finalizeDPPPhase();
+        const receipt = await finalizeDPPPhase.wait();
         res.json({transactionHash: receipt.transactionHash});
     } catch (error) {
         console.error("Error:", error);

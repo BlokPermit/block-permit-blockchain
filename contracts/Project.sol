@@ -17,6 +17,7 @@ contract Project {
     Document public DPP;
     DocumentContract[] public sentDPPs;
     uint256 public numOfAssessedDPPs;
+    bool public isDPPPhaseFinalized;
     Document public DGD;
     DocumentContract[] public sentDGDs;
     uint256 public numOfAssessedDGDs;
@@ -57,24 +58,13 @@ contract Project {
     }
 
     modifier DPPsInAssessment() {
-        if (numOfAssessmentProviders != 0) {
-            require(
-                numOfAssessedDPPs < numOfAssessmentProviders,
-                "This function cannot be called after all the DPPs have been assessed"
-            );
-        }
+        require(!isDPPPhaseFinalized, "This function cannot be called after DPP phase has been finalized");
         _;
     }
 
     modifier DGDsInAssessment() {
-        require(
-            numOfAssessedDPPs == numOfAssessmentProviders,
-            "This function cannot be called before all DPPs have been assessed"
-        );
-        require(
-            numOfAssessedDGDs < numOfAssessmentProviders,
-            "This function cannot be called after all the DGDs have been assessed"
-        );
+        require(isDPPPhaseFinalized, "This function cannot be called before DPP phase has been finalized");
+        require(numOfAssessedDGDs < numOfAssessmentProviders, "This function cannot be called after all the DGDs have been assessed");
         _;
     }
 
@@ -409,5 +399,14 @@ contract Project {
         returns (address[] memory)
     {
         return assessmentProvidersAddresses;
+    }
+
+    event DPPPhaseFinalized(uint256 timestamp);
+
+    function finalizeDPPPhase() external {
+        require(!isDPPPhaseFinalized, "This function cannot be called after DPP phase has been finalized");
+        require(numOfAssessedDPPs == numOfAssessmentProviders, "This function cannot be called before all DPPs have been assessed");
+        isDPPPhaseFinalized = true;
+        emit DPPPhaseFinalized(block.timestamp);
     }
 }
